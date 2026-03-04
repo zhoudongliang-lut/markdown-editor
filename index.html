@@ -1,0 +1,495 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Markdown 编辑器</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Noto+Sans+SC:wght@400;500;700&display=swap');
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        :root {
+            --bg-primary: #1a1a2e;
+            --bg-secondary: #16213e;
+            --bg-tertiary: #0f3460;
+            --accent: #e94560;
+            --text-primary: #eaeaea;
+            --text-secondary: #a0a0a0;
+            --border: #2a2a4a;
+            --success: #00d9a5;
+        }
+        
+        body {
+            font-family: 'Noto Sans SC', sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+        
+        header {
+            background: var(--bg-secondary);
+            padding: 15px 20px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            border-bottom: 1px solid var(--border);
+        }
+        
+        h1 {
+            font-size: 1.2rem;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        h1::before {
+            content: "📝";
+        }
+        
+        .actions {
+            display: flex;
+            gap: 10px;
+        }
+        
+        button {
+            background: var(--bg-tertiary);
+            color: var(--text-primary);
+            border: 1px solid var(--border);
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-family: inherit;
+            font-size: 0.85rem;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        
+        button:hover {
+            background: var(--accent);
+            border-color: var(--accent);
+        }
+        
+        button.primary {
+            background: var(--accent);
+            border-color: var(--accent);
+        }
+        
+        button.primary:hover {
+            background: #ff6b8a;
+        }
+        
+        .main {
+            flex: 1;
+            display: flex;
+            overflow: hidden;
+        }
+        
+        .editor, .preview {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            min-width: 0;
+        }
+        
+        .editor {
+            border-right: 1px solid var(--border);
+        }
+        
+        .panel-header {
+            background: var(--bg-secondary);
+            padding: 10px 15px;
+            font-size: 0.8rem;
+            font-weight: 500;
+            color: var(--text-secondary);
+            border-bottom: 1px solid var(--border);
+        }
+        
+        #markdown-input {
+            flex: 1;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            border: none;
+            padding: 20px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.9rem;
+            line-height: 1.7;
+            resize: none;
+            outline: none;
+        }
+        
+        #markdown-input::placeholder {
+            color: var(--text-secondary);
+        }
+        
+        #preview-output {
+            flex: 1;
+            background: var(--bg-primary);
+            padding: 20px;
+            overflow-y: auto;
+            line-height: 1.7;
+        }
+        
+        #preview-output h1 {
+            font-size: 2rem;
+            margin: 0 0 20px 0;
+            padding-bottom: 10px;
+            border-bottom: 2px solid var(--border);
+        }
+        
+        #preview-output h2 {
+            font-size: 1.5rem;
+            margin: 30px 0 15px 0;
+        }
+        
+        #preview-output h3 {
+            font-size: 1.2rem;
+            margin: 25px 0 10px 0;
+        }
+        
+        #preview-output p {
+            margin: 15px 0;
+        }
+        
+        #preview-output code {
+            background: var(--bg-secondary);
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.85em;
+        }
+        
+        #preview-output pre {
+            background: var(--bg-secondary);
+            padding: 15px;
+            border-radius: 8px;
+            overflow-x: auto;
+            margin: 15px 0;
+        }
+        
+        #preview-output pre code {
+            padding: 0;
+            background: none;
+        }
+        
+        #preview-output ul, #preview-output ol {
+            margin: 15px 0;
+            padding-left: 25px;
+        }
+        
+        #preview-output li {
+            margin: 8px 0;
+        }
+        
+        #preview-output blockquote {
+            border-left: 4px solid var(--accent);
+            padding-left: 15px;
+            margin: 15px 0;
+            color: var(--text-secondary);
+            font-style: italic;
+        }
+        
+        #preview-output a {
+            color: var(--accent);
+            text-decoration: none;
+        }
+        
+        #preview-output a:hover {
+            text-decoration: underline;
+        }
+        
+        #preview-output img {
+            max-width: 100%;
+            border-radius: 8px;
+            margin: 15px 0;
+        }
+        
+        #preview-output table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 15px 0;
+        }
+        
+        #preview-output th, #preview-output td {
+            border: 1px solid var(--border);
+            padding: 10px;
+            text-align: left;
+        }
+        
+        #preview-output th {
+            background: var(--bg-secondary);
+        }
+        
+        #preview-output hr {
+            border: none;
+            border-top: 1px solid var(--border);
+            margin: 30px 0;
+        }
+        
+        .resize-handle {
+            width: 6px;
+            background: var(--bg-secondary);
+            cursor: col-resize;
+            transition: background 0.2s;
+        }
+        
+        .resize-handle:hover {
+            background: var(--accent);
+        }
+        
+        .status {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: var(--bg-secondary);
+            padding: 12px 20px;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+            font-size: 0.85rem;
+            opacity: 0;
+            transition: opacity 0.3s;
+            z-index: 1000;
+        }
+        
+        .status.show {
+            opacity: 1;
+        }
+        
+        .status.success {
+            border-color: var(--success);
+            color: var(--success);
+        }
+        
+        @media (max-width: 768px) {
+            .main {
+                flex-direction: column;
+            }
+            .editor {
+                border-right: none;
+                border-bottom: 1px solid var(--border);
+            }
+            .resize-handle {
+                display: none;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>Markdown 编辑器</h1>
+        <div class="actions">
+            <button onclick="download()">📥 下载</button>
+            <button onclick="copyHtml()">📋 复制 HTML</button>
+            <button class="primary" onclick="save()">💾 保存</button>
+        </div>
+    </header>
+    <div class="main">
+        <div class="editor">
+            <div class="panel-header">📝 编辑区</div>
+            <textarea id="markdown-input" placeholder="# 在这里输入 Markdown...
+            
+## 示例
+- 列表项 1
+- 列表项 2
+
+**粗体** 和 *斜体*
+
+\`代码\`
+
+```
+代码块
+```
+
+> 引用
+
+[链接](https://example.com)"></textarea>
+        </div>
+        <div class="resize-handle"></div>
+        <div class="preview">
+            <div class="panel-header">👁️ 预览</div>
+            <div id="preview-output"></div>
+        </div>
+    </div>
+    <div class="status" id="status"></div>
+
+    <script>
+        const input = document.getElementById('markdown-input');
+        const output = document.getElementById('preview-output');
+        
+        // Simple Markdown parser
+        function parseMarkdown(text) {
+            let html = text
+                // Escape HTML
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+            
+            // Code blocks (must be before inline code)
+            html = html.replace(/```(\w*)\n([\s\S]*?)```/g, '<pre><code>$2</code></pre>')
+            
+            // Inline code
+            html = html.replace(/`([^`]+)`/g, '<code>$1</code>')
+            
+            // Headers
+            html = html.replace(/^###### (.+)$/gm, '<h6>$1</h6>')
+            html = html.replace(/^##### (.+)$/gm, '<h5>$1</h5>')
+            html = html.replace(/^#### (.+)$/gm, '<h4>$1</h4>')
+            html = html.replace(/^### (.+)$/gm, '<h3>$1</h3>')
+            html = html.replace(/^## (.+)$/gm, '<h2>$1</h2>')
+            html = html.replace(/^# (.+)$/gm, '<h1>$1</h1>')
+            
+            // Bold and italic
+            html = html.replace(/\*\*\*(.+?)\*\*\*/g, '<strong><em>$1</em></strong>')
+            html = html.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+            html = html.replace(/\*(.+?)\*/g, '<em>$1</em>')
+            html = html.replace(/___(.+?)___/g, '<strong><em>$1</em></strong>')
+            html = html.replace(/__(.+?)__/g, '<strong>$1</strong>')
+            html = html.replace(/_(.+?)_/g, '<em>$1</em>')
+            
+            // Strikethrough
+            html = html.replace(/~~(.+?)~~/g, '<del>$1</del>')
+            
+            // Links
+            html = html.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank">$1</a>')
+            
+            // Images
+            html = html.replace(/!\[([^\]]*)\]\(([^)]+)\)/g, '<img src="$2" alt="$1">')
+            
+            // Blockquotes
+            html = html.replace(/^&gt; (.+)$/gm, '<blockquote>$1</blockquote>')
+            
+            // Horizontal rules
+            html = html.replace(/^---$/gm, '<hr>')
+            
+            // Unordered lists
+            html = html.replace(/^[\-\*] (.+)$/gm, '<li>$1</li>')
+            html = html.replace(/(<li>.*<\/li>\n?)+/g, '<ul>$&</ul>')
+            
+            // Ordered lists
+            html = html.replace(/^\d+\. (.+)$/gm, '<li>$1</li>')
+            
+            // Paragraphs
+            html = html.replace(/\n\n/g, '</p><p>')
+            html = '<p>' + html + '</p>'
+            
+            // Clean up empty paragraphs
+            html = html.replace(/<p><\/p>/g, '')
+            html = html.replace(/<p>(<h[1-6]>)/g, '$1')
+            html = html.replace(/(<\/h[1-6]>)<\/p>/g, '$1')
+            html = html.replace(/<p>(<pre>)/g, '$1')
+            html = html.replace(/(<\/pre>)<\/p>/g, '$1')
+            html = html.replace(/<p>(<ul>)/g, '$1')
+            html = html.replace(/(<\/ul>)<\/p>/g, '$1')
+            html = html.replace(/<p>(<blockquote>)/g, '$1')
+            html = html.replace(/(<\/blockquote>)<\/p>/g, '$1')
+            html = html.replace(/<p>(<hr>)<\/p>/g, '$1')
+            
+            return html
+        }
+        
+        function updatePreview() {
+            output.innerHTML = parseMarkdown(input.value)
+        }
+        
+        function showStatus(message, isSuccess = true) {
+            const status = document.getElementById('status')
+            status.textContent = message
+            status.className = 'status show' + (isSuccess ? ' success' : '')
+            setTimeout(() => status.classList.remove('show'), 2000)
+        }
+        
+        function download() {
+            const blob = new Blob([input.value], { type: 'text/markdown' })
+            const url = URL.createObjectURL(blob)
+            const a = document.createElement('a')
+            a.href = url
+            a.download = 'document.md'
+            a.click()
+            URL.revokeObjectURL(url)
+            showStatus('✅ Markdown 文件已下载')
+        }
+        
+        function copyHtml() {
+            navigator.clipboard.writeText(output.innerHTML)
+            showStatus('✅ HTML 已复制到剪贴板')
+        }
+        
+        function save() {
+            localStorage.setItem('markdown-content', input.value)
+            showStatus('✅ 内容已自动保存')
+        }
+        
+        // Load saved content
+        const saved = localStorage.getItem('markdown-content')
+        if (saved) {
+            input.value = saved
+        } else {
+            input.value = `# 欢迎使用 Markdown 编辑器
+
+## 功能特点
+
+- 📝 实时预览
+- 💾 自动保存到本地
+- 📥 支持下载 Markdown 文件
+- 📋 复制 HTML 代码
+- 🎨 美观的暗色主题
+
+## 代码示例
+
+\`\`\`javascript
+function hello() {
+  console.log('Hello, World!')
+}
+\`\`\`
+
+## 链接和图片
+
+[OpenClaw 文档](https://docs.openclaw.ai)
+
+> 这是一个引用块
+
+---
+
+开始编辑吧！`
+        }
+        
+        input.addEventListener('input', updatePreview)
+        updatePreview()
+        
+        // Drag to resize
+        let isResizing = false
+        const handle = document.querySelector('.resize-handle')
+        
+        handle.addEventListener('mousedown', (e) => {
+            isResizing = true
+            document.body.style.cursor = 'col-resize'
+        })
+        
+        document.addEventListener('mousemove', (e) => {
+            if (!isResizing) return
+            const container = document.querySelector('.main')
+            const editor = document.querySelector('.editor')
+            const newWidth = e.clientX - container.getBoundingClientRect().left
+            if (newWidth > 200 && newWidth < container.offsetWidth - 200) {
+                editor.style.flex = 'none'
+                editor.style.width = newWidth + 'px'
+            }
+        })
+        
+        document.addEventListener('mouseup', () => {
+            isResizing = false
+            document.body.style.cursor = ''
+        })
+    </script>
+</body>
+</html>
